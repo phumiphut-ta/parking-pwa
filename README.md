@@ -68,4 +68,4 @@
 ```
 
 ---
-*Developed with ❤️ by Antigravity*
+*Crafted by Phmiphut P.*
