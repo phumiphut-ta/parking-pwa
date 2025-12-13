@@ -1,0 +1,22 @@
+{
+    "name": "ที่จอดรถของฉัน",
+    "short_name": "ที่จอดรถ",
+    "description": "บันทึกและนำทางไปยังจุดจอดรถของคุณ",
+    "start_url": "./index.html",
+    "display": "standalone",
+    "background_color": "#f8fafc",
+    "theme_color": "#4f46e5",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "icon-192.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        },
+        {
+            "src": "icon-512.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        }
+    ]
+}

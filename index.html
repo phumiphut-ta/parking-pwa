@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="บันทึกจุดจอดรถของคุณง่ายๆ ไม่ต้องโหลดแอป">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>ที่จอดรถของฉัน</title>
+
+    <!-- Google Fonts: Prompt -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+</head>
+
+<body>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header>
+            <div class="logo">
+                <i class="fa-solid fa-square-parking"></i>
+                <h1>ที่จอดรถของฉัน</h1>
+            </div>
+            <div id="status-indicator" class="status searching">
+                <i class="fa-solid fa-location-crosshairs"></i>
+                <span id="status-text">กำลังค้นหา...</span>
+            </div>
+            <button id="btn-request-gps" class="icon-btn" style="display: none;" aria-label="ขอใช้ GPS">
+                <i class="fa-solid fa-rotate-right"></i>
+            </button>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <!-- Map Card -->
+            <div class="map-card">
+                <div id="map"></div>
+                <!-- Controls overlay on map -->
+                <button id="btn-center" class="map-control-btn" aria-label="ตำแหน่งปัจจุบัน">
+                    <i class="fa-solid fa-crosshairs"></i>
+                </button>
+            </div>
+
+            <!-- Dashboard Card -->
+            <div class="dashboard-card" id="parking-info-card" style="display: none;">
+                <div class="info-row">
+                    <div class="info-icon"><i class="fa-solid fa-clock"></i></div>
+                    <div class="info-text">
+                        <span class="label">จอดเมื่อ</span>
+                        <span class="value" id="park-time">-</span>
+                    </div>
+                </div>
+                <div class="info-row">
+                    <div class="info-icon"><i class="fa-solid fa-location-dot"></i></div>
+                    <div class="info-text">
+                        <span class="label">พิกัด</span>
+                        <span class="value" id="park-coords">-</span>
+                    </div>
+                </div>
+
+                <!-- Note Section -->
+                <div class="note-section">
+                    <label for="park-note" class="note-label">
+                        <i class="fa-solid fa-note-sticky"></i> บันทึกช่วยจำ (ชั้น/ช่องจอด)
+                    </label>
+                    <textarea id="park-note" class="note-input" placeholder="ตัวอย่าง: ชั้น 3A ช่อง 42..."></textarea>
+                </div>
+
+                <div class="action-grid">
+                    <button id="btn-navigate" class="action-btn primary">
+                        <i class="fa-solid fa-diamond-turn-right"></i>
+                        นำทาง
+                    </button>
+                    <button id="btn-clear" class="action-btn danger">
+                        <i class="fa-solid fa-trash"></i>
+                        ลบ
+                    </button>
+                </div>
+            </div>
+
+            <!-- Empty State / Big Action Button -->
+            <div class="action-area" id="main-action-area">
+                <button id="btn-park" class="park-btn">
+                    <div class="btn-content">
+                        <i class="fa-solid fa-car-side"></i>
+                        <span>จอดรถตรงนี้</span>
+                    </div>
+                    <div class="btn-shine"></div>
+                </button>
+                <p class="hint-text">กดเพื่อบันทึกตำแหน่งปัจจุบันของคุณ</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- App Logic -->
+    <script src="app.js"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('SW registered'))
+                    .catch(err => console.log('SW setup failed', err));
+            });
+        }
+    </script>
+</body>
+
+</html>
