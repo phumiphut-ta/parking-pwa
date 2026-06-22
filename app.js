@@ -4,6 +4,7 @@ let userMarker;
 let parkMarker;
 let watchId;
 let currentPos = null;
+let timerIntervalId = null;
 
 // DOM Elements
 const els = {
@@ -19,7 +20,14 @@ const els = {
     parkCoords: document.getElementById('park-coords'),
     parkNote: document.getElementById('park-note'),
     btnRequestGps: document.getElementById('btn-request-gps'),
-    btnFullscreen: document.getElementById('btn-fullscreen')
+    btnFullscreen: document.getElementById('btn-fullscreen'),
+    elapsedTime: document.getElementById('elapsed-time'),
+    parkLimitSelect: document.getElementById('park-limit-select'),
+    countdownArea: document.getElementById('countdown-area'),
+    countdownProgressBar: document.getElementById('countdown-progress-bar'),
+    countdownTime: document.getElementById('countdown-time'),
+    btnShare: document.getElementById('btn-share'),
+    toast: document.getElementById('toast')
 };
 
 // Config
@@ -208,6 +216,21 @@ function setupEvents() {
             localStorage.setItem(PARKING_KEY, JSON.stringify(currentData));
         }
     });
+
+    // Limit select change listener
+    els.parkLimitSelect.addEventListener('change', (e) => {
+        const currentData = getParkingData();
+        if (currentData) {
+            currentData.limitMinutes = parseInt(e.target.value) || 0;
+            localStorage.setItem(PARKING_KEY, JSON.stringify(currentData));
+            updateTimerDisplay(currentData);
+        }
+    });
+
+    // Share button listener
+    els.btnShare.addEventListener('click', () => {
+        shareParking();
+    });
 }
 
 // Logic: Storage
@@ -266,6 +289,21 @@ function renderParkingState(data) {
         // Restore Note
         els.parkNote.value = data.note || '';
 
+        // Restore Limit Selector
+        els.parkLimitSelect.value = data.limitMinutes || 0;
+
+        // Start/Reset Timer
+        stopTimer();
+        timerIntervalId = setInterval(() => {
+            const currentData = getParkingData();
+            if (currentData) {
+                updateTimerDisplay(currentData);
+            } else {
+                stopTimer();
+            }
+        }, 1000);
+        updateTimerDisplay(data);
+
         // Map Marker
         if (parkMarker) map.removeLayer(parkMarker);
 
@@ -288,6 +326,7 @@ function renderParkingState(data) {
         els.mainActionArea.style.display = 'block';
         els.parkingInfoCard.style.display = 'none';
         if (parkMarker) map.removeLayer(parkMarker);
+        stopTimer();
     }
 }
 
@@ -307,5 +346,140 @@ function fitMapBounds() {
         map.fitBounds(points, { padding: [50, 50], maxZoom: 18 });
     } else if (points.length === 1) {
         map.flyTo(points[0], 17);
+    }
+}
+
+function stopTimer() {
+    if (timerIntervalId) {
+        clearInterval(timerIntervalId);
+        timerIntervalId = null;
+    }
+}
+
+function updateTimerDisplay(data) {
+    if (!data || !data.timestamp) return;
+    
+    const startTime = new Date(data.timestamp).getTime();
+    const now = Date.now();
+    const elapsedMs = now - startTime;
+    
+    // 1. Update Elapsed Time (hh:mm:ss)
+    const elapsedSec = Math.floor(elapsedMs / 1000) % 60;
+    const elapsedMin = Math.floor(elapsedMs / (1000 * 60)) % 60;
+    const elapsedHour = Math.floor(elapsedMs / (1000 * 60 * 60));
+    
+    const formatNum = (num) => String(num).padStart(2, '0');
+    els.elapsedTime.textContent = `${formatNum(elapsedHour)}:${formatNum(elapsedMin)}:${formatNum(elapsedSec)}`;
+    
+    // 2. Update Countdown Expiry if limitMinutes is set
+    const limitMin = data.limitMinutes || 0;
+    if (limitMin > 0) {
+        els.countdownArea.style.display = 'block';
+        
+        const limitMs = limitMin * 60 * 1000;
+        const remainingMs = limitMs - elapsedMs;
+        
+        // Calculate percentage remaining
+        const remainingPercent = Math.max(0, Math.min(100, (remainingMs / limitMs) * 100));
+        
+        // Update Progress Bar
+        els.countdownProgressBar.style.width = `${remainingPercent}%`;
+        
+        // Reset warning classes
+        els.countdownProgressBar.className = 'countdown-progress-bar';
+        els.countdownTime.className = 'countdown-time';
+        
+        const remainingMinTotal = remainingMs / (1000 * 60);
+        
+        if (remainingMs <= 0) {
+            // Expired state
+            els.countdownProgressBar.classList.add('danger');
+            els.countdownTime.classList.add('danger');
+            els.countdownProgressBar.style.width = '0%';
+            
+            const overMs = Math.abs(remainingMs);
+            const overMin = Math.floor(overMs / (1000 * 60)) % 60;
+            const overHour = Math.floor(overMs / (1000 * 60 * 60));
+            
+            document.getElementById('countdown-label').textContent = 'จอดเกินกำหนดมาแล้ว';
+            
+            if (overHour > 0) {
+                els.countdownTime.textContent = `${overHour} ชม. ${overMin} นาที`;
+            } else {
+                const overSec = Math.floor(overMs / 1000) % 60;
+                els.countdownTime.textContent = `${overMin}:${formatNum(overSec)}`;
+            }
+        } else {
+            // Active countdown
+            document.getElementById('countdown-label').textContent = 'เหลือเวลาอีก';
+            
+            const remSec = Math.floor(remainingMs / 1000) % 60;
+            const remMin = Math.floor(remainingMs / (1000 * 60)) % 60;
+            const remHour = Math.floor(remainingMs / (1000 * 60 * 60));
+            
+            if (remHour > 0) {
+                els.countdownTime.textContent = `${remHour} ชม. ${remMin} นาที`;
+            } else {
+                els.countdownTime.textContent = `${remMin}:${formatNum(remSec)}`;
+            }
+            
+            if (remainingMinTotal <= 15) {
+                // Less than 15 mins left -> Warning (Orange)
+                els.countdownProgressBar.classList.add('warning');
+                els.countdownTime.classList.add('warning');
+            }
+        }
+    } else {
+        els.countdownArea.style.display = 'none';
+    }
+}
+
+function shareParking() {
+    const data = getParkingData();
+    if (!data) return;
+    
+    let shareText = '🚗 พิกัดที่จอดรถของฉัน\n';
+    if (data.note) {
+        shareText += `📝 บันทึกช่วยจำ: ${data.note}\n`;
+    }
+    if (data.timestamp) {
+        const date = new Date(data.timestamp);
+        const dateStr = date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+        const timeStr = date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+        shareText += `⏰ เวลาจอด: ${dateStr} เวลา ${timeStr}\n`;
+    }
+    
+    let shareUrl = '';
+    if (data.lat && data.lng) {
+        shareUrl = `https://www.google.com/maps/search/?api=1&query=${data.lat},${data.lng}`;
+    }
+    
+    const fullShareText = `${shareText}${shareUrl ? `📍 ลิงก์แผนที่: ${shareUrl}` : ''}`;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: 'พิกัดที่จอดรถของฉัน',
+            text: shareText,
+            url: shareUrl || undefined
+        }).catch((error) => console.log('Error sharing:', error));
+    } else {
+        // Fallback to Clipboard Copy
+        navigator.clipboard.writeText(fullShareText)
+            .then(() => {
+                showToast();
+            })
+            .catch(err => {
+                console.error('Could not copy text: ', err);
+                alert('แชร์ไม่สำเร็จ และคัดลอกพิกัดไม่ได้');
+            });
+    }
+}
+
+function showToast() {
+    if (els.toast) {
+        els.toast.classList.add('show');
+        setTimeout(() => {
+            els.toast.classList.remove('show');
+        }, 2500);
     }
 }

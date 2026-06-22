@@ -80,6 +80,43 @@
                     </div>
                 </div>
 
+                <!-- Timer Section -->
+                <div class="timer-section">
+                    <div class="info-row timer-row">
+                        <div class="info-icon"><i class="fa-solid fa-stopwatch"></i></div>
+                        <div class="info-text">
+                            <span class="label">เวลาที่จอดแล้ว</span>
+                            <span class="value" id="elapsed-time">00:00:00</span>
+                        </div>
+                    </div>
+                    
+                    <div class="timer-controls">
+                        <div class="limit-picker">
+                            <label for="park-limit-select" class="control-label">
+                                <i class="fa-solid fa-bell"></i> แจ้งเตือนเวลาจอดฟรี
+                            </label>
+                            <select id="park-limit-select" class="limit-select">
+                                <option value="0">ไม่แจ้งเตือน</option>
+                                <option value="30">30 นาที</option>
+                                <option value="60">1 ชั่วโมง</option>
+                                <option value="120">2 ชั่วโมง</option>
+                                <option value="180">3 ชั่วโมง</option>
+                                <option value="240">4 ชั่วโมง</option>
+                            </select>
+                        </div>
+                        
+                        <div id="countdown-area" style="display: none;">
+                            <div class="countdown-progress-container">
+                                <div class="countdown-progress-bar" id="countdown-progress-bar"></div>
+                            </div>
+                            <div class="countdown-text-row">
+                                <span class="countdown-label" id="countdown-label">เหลือเวลาอีก</span>
+                                <span class="countdown-time" id="countdown-time">00:00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Note Section -->
                 <div class="note-section">
                     <label for="park-note" class="note-label">
@@ -92,6 +129,10 @@
                     <button id="btn-navigate" class="action-btn primary">
                         <i class="fa-solid fa-diamond-turn-right"></i>
                         นำทาง
+                    </button>
+                    <button id="btn-share" class="action-btn secondary">
+                        <i class="fa-solid fa-share-nodes"></i>
+                        แชร์
                     </button>
                     <button id="btn-clear" class="action-btn danger">
                         <i class="fa-solid fa-trash"></i>
@@ -131,6 +172,9 @@
             });
         }
     </script>
+    
+    <!-- Toast Notification -->
+    <div id="toast" class="toast-notification">คัดลอกพิกัดจอดรถลง Clipboard แล้ว!</div>
 </body>
 
 </html>
