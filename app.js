@@ -16,10 +16,10 @@ const els = {
     mainActionArea: document.getElementById('main-action-area'),
     parkingInfoCard: document.getElementById('parking-info-card'),
     parkTime: document.getElementById('park-time'),
-    parkTime: document.getElementById('park-time'),
     parkCoords: document.getElementById('park-coords'),
     parkNote: document.getElementById('park-note'),
-    btnRequestGps: document.getElementById('btn-request-gps')
+    btnRequestGps: document.getElementById('btn-request-gps'),
+    btnFullscreen: document.getElementById('btn-fullscreen')
 };
 
 // Config
@@ -88,9 +88,9 @@ function startLocationWatch() {
             updateUserMarker(latitude, longitude, accuracy);
             updateStatus('พร้อมใช้งาน', 'active');
 
-            // First fix: pan to user
+            // First fix: pan or fit bounds showing user and parked car
             if (!window.hasCenteredOnce) {
-                map.setView([latitude, longitude], 16);
+                fitMapBounds();
                 window.hasCenteredOnce = true;
             }
         },
@@ -155,9 +155,26 @@ function setupEvents() {
     });
 
     els.btnCenter.addEventListener('click', () => {
-        if (currentPos) {
-            map.flyTo([currentPos.lat, currentPos.lng], 17);
+        fitMapBounds();
+    });
+
+    els.btnFullscreen.addEventListener('click', () => {
+        const mapCard = document.querySelector('.map-card');
+        const isFullscreen = mapCard.classList.toggle('fullscreen');
+        const icon = els.btnFullscreen.querySelector('i');
+        
+        if (isFullscreen) {
+            icon.className = 'fa-solid fa-compress';
+            els.btnFullscreen.setAttribute('aria-label', 'หุบแผนที่');
+        } else {
+            icon.className = 'fa-solid fa-expand';
+            els.btnFullscreen.setAttribute('aria-label', 'เต็มจอ');
         }
+        
+        // Invalidate Leaflet map size after CSS transition/layout update
+        setTimeout(() => {
+            map.invalidateSize();
+        }, 100);
     });
 
     els.btnClear.addEventListener('click', () => {
@@ -204,9 +221,7 @@ function saveParking(lat, lng) {
     localStorage.setItem(PARKING_KEY, JSON.stringify(data));
     renderParkingState(data);
 
-    if (lat && lng) {
-        map.flyTo([lat, lng], 18);
-    }
+    fitMapBounds();
 }
 
 function getParkingData() {
@@ -236,7 +251,9 @@ function renderParkingState(data) {
 
         // Format Date
         const date = new Date(data.timestamp);
-        els.parkTime.textContent = date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+        const dateStr = date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+        const timeStr = date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) + ' น.';
+        els.parkTime.textContent = `${dateStr} เวลา ${timeStr}`;
 
         if (data.lat && data.lng) {
             els.parkCoords.textContent = `${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}`;
@@ -271,5 +288,24 @@ function renderParkingState(data) {
         els.mainActionArea.style.display = 'block';
         els.parkingInfoCard.style.display = 'none';
         if (parkMarker) map.removeLayer(parkMarker);
+    }
+}
+
+function fitMapBounds() {
+    if (!map) return;
+    const data = getParkingData();
+    const points = [];
+    
+    if (currentPos) {
+        points.push([currentPos.lat, currentPos.lng]);
+    }
+    if (data && data.lat && data.lng) {
+        points.push([data.lat, data.lng]);
+    }
+    
+    if (points.length === 2) {
+        map.fitBounds(points, { padding: [50, 50], maxZoom: 18 });
+    } else if (points.length === 1) {
+        map.flyTo(points[0], 17);
     }
 }
